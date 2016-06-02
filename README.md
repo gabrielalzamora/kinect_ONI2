@@ -12,4 +12,3 @@ objective:
 state of art:
   2/jun/2016  video and depth ~working
               InfraRed does not ?? that's next goal
-  
