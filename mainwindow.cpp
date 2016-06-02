@@ -226,6 +226,8 @@ void MainWindow::on_pbDepth_clicked(){
     stream = new openni::VideoStream*[1];
     stream[0] = &depth;
 
+    memset(m_pTexMap, 0, m_width*m_height*sizeof(openni::RGB888Pixel));
+
 while ( flag[DEPTH] ){
 
     openni::Status rc = openni::OpenNI::waitForAnyStream(stream, 1, &changedIndex);//1 for single stream in m_streams
@@ -234,7 +236,7 @@ while ( flag[DEPTH] ){
         return;
     }
 
-    memset(m_pTexMap, 0, m_width*m_height*sizeof(openni::RGB888Pixel));
+    //memset(m_pTexMap, 0, m_width*m_height*sizeof(openni::RGB888Pixel));
 
     depth.readFrame(&m_depthFrame);
     if ( m_depthFrame.isValid() ){
@@ -337,7 +339,9 @@ void MainWindow::selectDevice(){
 
     if( deviceNumber == 0 ){
         ui->combo->addItem("No kinect detected");
-        return;
+        scene->addText(" No kinect detected, unable to start");
+        ui->view->show();
+        ui->pbStart->setEnabled(false);
     }else{
         for( int i = 0; i < deviceNumber ; i++){
             deviceInfo[i] = deviceInfoList->operator [](i);
@@ -346,11 +350,14 @@ void MainWindow::selectDevice(){
             qDebug() << " " << deviceInfo[i].getUri();
         }
         qDebug() << "  rellenamos combo";
+        scene->addText(" Select kinect in combo box to start");
+        ui->view->show();
     }
+
 }
 
 void MainWindow::closeK(){
-    on_pbStop_clicked();//stop other streams
+    on_pbStop_clicked();//stop loops
     color.destroy();
     depth.destroy();
     ir.destroy();

@@ -19,7 +19,7 @@ HEADERS += mainwindow.h
 FORMS   += mainwindow.ui
 
 # LIBS += -L where are your freenect libs  & -l libraries needed
-LIBS    += -L /home/nadie/accesorios/OpenNI2/Redist -lOpenNI2 -lfreenect -lusb-1.0 -lglut
+LIBS    += -L /home/nadie/accesorios/OpenNI2/Redist -lOpenNI2 -lfreenect -lusb-1.0
 
 # INCLUDEPATH += tell QT where do you hide your include's
 INCLUDEPATH += /usr/include/libusb-1.0 \
