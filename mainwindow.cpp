@@ -47,11 +47,6 @@ MainWindow::~MainWindow(){
     qDebug() << "MainWindow::~MainWindow()";
     delete[] deviceInfo;
     delete[] m_pTexMap;
-    color.destroy();
-    depth.destroy();
-    ir.destroy();
-    device.close();
-    openni::OpenNI::shutdown();
     delete ui;
 }
 
@@ -188,13 +183,10 @@ while ( flag[VIDEO] ){
         qDebug() << "Wait failed";
         return;
     }
-    qDebug() << "  salimos del wait";
+
+    memset(m_pTexMap, 0, m_width*m_height*sizeof(openni::RGB888Pixel));
 
     color.readFrame(&m_colorFrame);
-    qDebug() << "  color.readFrame";
-    memset(m_pTexMap, 0, m_width*m_height*sizeof(openni::RGB888Pixel));
-    qDebug() << "  memset(m_pTexMap, 0, m_width*m_nTexMap";
-
     if( m_colorFrame.isValid() ){
         const openni::RGB888Pixel* pImageRow = (const openni::RGB888Pixel*)m_colorFrame.getData();
         openni::RGB888Pixel* pTexRow = m_pTexMap;
@@ -237,59 +229,43 @@ void MainWindow::on_pbDepth_clicked(){
 while ( flag[DEPTH] ){
 
     openni::Status rc = openni::OpenNI::waitForAnyStream(stream, 1, &changedIndex);//1 for single stream in m_streams
-    if (rc != openni::STATUS_OK)
-    {
+    if (rc != openni::STATUS_OK){
         qDebug() << "Wait failed";
         return;
-    }
-    qDebug() << "  salimos del wait";
-
-    depth.readFrame(&m_depthFrame);
-    qDebug() << "  depth.readFrame";
-    if( m_depthFrame.isValid() ){
-        calculateHistogram(m_pDepthHist, MAX_DEPTH, m_depthFrame);
     }
 
     memset(m_pTexMap, 0, m_width*m_height*sizeof(openni::RGB888Pixel));
 
-    if ( m_depthFrame.isValid() )
-    {
-        /// set here calculateHistogram()-----------------DEBUG
+    depth.readFrame(&m_depthFrame);
+    if ( m_depthFrame.isValid() ){
+        calculateHistogram(m_pDepthHist, MAX_DEPTH, m_depthFrame);
 
         const openni::DepthPixel* pDepthRow = (const openni::DepthPixel*)m_depthFrame.getData();
         openni::RGB888Pixel* pTexRow = m_pTexMap + m_depthFrame.getCropOriginY() * m_width;
         int rowSize = m_depthFrame.getStrideInBytes() / sizeof(openni::DepthPixel);
 
-        for (int y = 0; y < m_depthFrame.getHeight(); ++y)
-        {
+        for (int y = 0; y < m_depthFrame.getHeight(); ++y){
             const openni::DepthPixel* pDepth = pDepthRow;
             openni::RGB888Pixel* pTex = pTexRow + m_depthFrame.getCropOriginX();
 
-            for (int x = 0; x < m_depthFrame.getWidth(); ++x, ++pDepth, ++pTex)
-            {
-                if (*pDepth != 0)
-                {
+            for (int x = 0; x < m_depthFrame.getWidth(); ++x, ++pDepth, ++pTex){
+                if (*pDepth != 0){
                     int nHistValue = m_pDepthHist[*pDepth];
                     pTex->r = nHistValue;
                     pTex->g = nHistValue;
-                    pTex->b = nHistValue;//añadido para que sea gris
+                    pTex->b = nHistValue;//to obtain gray color
                 }
             }
-
             pDepthRow += rowSize;
             pTexRow += m_width;
         }
     }
 
-    ///----------try to convert to image----------DEBUG
     image = QImage((uchar*)m_pTexMap,m_width,m_height,QImage::Format_RGB888);
     scene->addPixmap(QPixmap::fromImage(image));
     ui->view->show();
-
     m_depthFrame.release();
-
     qApp->processEvents();//stay responsive to button click
-
 }//end while(flag)
 
 }//end on_pbDepth_clicked()
@@ -374,12 +350,17 @@ void MainWindow::selectDevice(){
 }
 
 void MainWindow::closeK(){
-
+    on_pbStop_clicked();//stop other streams
+    color.destroy();
+    depth.destroy();
+    ir.destroy();
+    device.close();
+    openni::OpenNI::shutdown();
 }
 
 void MainWindow::calculateHistogram(float* pHistogram, int histogramSize, const openni::VideoFrameRef& frame){
     const openni::DepthPixel* pDepth = (const openni::DepthPixel*)frame.getData();
-    // Calculate the accumulative histogram (the yellow display...)
+    // Calculate the accumulative histogram (the gray display...)
     memset(pHistogram, 0, histogramSize*sizeof(float));
     int restOfRow = frame.getStrideInBytes() / sizeof(openni::DepthPixel) - frame.getWidth();
     int height = frame.getHeight();
